@@ -91,6 +91,7 @@ public sealed class Plugin : IDalamudPlugin
   public Plugin(IDalamudPluginInterface pluginInterface)
   {
     pluginInterface.Create<Service>();
+
     PluginConfig = Service.PluginInterface.GetPluginConfig() as PluginConfig ?? new PluginConfig();
     PluginConfig.Initialize(Service.PluginInterface);
     PluginConfigUi = new PluginConfigUi(PluginConfig);
@@ -200,6 +201,7 @@ public sealed class Plugin : IDalamudPlugin
     var targetRotation = GetObjectRotation(target.Position, playerPosition, playerRotation);
     if ((MathF.Abs(targetRotation) > halfAngle) || (MathF.Abs(targetRotation) <= Dev1Mm)) return;
 
+    var playerDestination = playerRotation + targetRotation;
     var rotationSpeed = PluginConfig.RotationSpeed / 1000.0f;
     var onUpdateDelta = (float)Service.Framework.UpdateDelta.TotalSeconds;
     var rotationFactor = 1.0f - MathF.Exp(-rotationSpeed * onUpdateDelta * 60.0f);
@@ -218,7 +220,15 @@ public sealed class Plugin : IDalamudPlugin
     var activeCamera = cameraManager->GetActiveCamera();
     if (activeCamera == null) return;
 
-    var cameraRotation = NormalizeAngle(playerRotation + Deg180);
+    var cameraDestination = NormalizeAngle(playerDestination + Deg180);
+    var cameraDirection = activeCamera->DirH;
+    var cameraRotation = NormalizeAngle(cameraDestination - cameraDirection);
+    if (MathF.Abs(cameraRotation) <= Dev1Mm) return;
+
+    var cameraStep = cameraRotation * rotationFactor;
+    cameraRotation = MathF.Abs(cameraRotation - cameraStep) <= Dev1Mm ? cameraRotation : cameraStep;
+
+    cameraRotation = NormalizeAngle(cameraDirection + cameraRotation);
     activeCamera->DirH = cameraRotation;
   }
 
