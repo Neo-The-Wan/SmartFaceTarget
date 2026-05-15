@@ -1,0 +1,8 @@
+﻿# Dossiers de build
+[Bb]in/
+[Oo]bj/
+
+# Fichiers utilisateur de Rider et Visual Studio
+.idea/
+*.suo
+*.user

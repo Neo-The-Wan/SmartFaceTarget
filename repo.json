@@ -1,0 +1,22 @@
+﻿[
+  {
+    "Author": "NeoTheWan",
+    "Name": "SmartFaceTarget",
+    "Punchline": "Smart Face Target",
+    "Description": "This plugin automatically orients your character towards your current target when you are stationary and select quickly the nearest enemy while in combat.",
+    "InternalName": "SmartFaceTarget",
+    "Tags": [
+      "automation",
+      "orientation",
+      "targeting"
+    ],
+    "ApplicableVersion": "any",
+    "AssemblyVersion": "1.0.0.0",
+    "DalamudApiLevel": 15,
+    "LoadPriority": 0,
+    "DownloadLinkInstall": "https://github.com/Neo-The-Wan/SmartFaceTarget/releases/download/latest/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/Neo-The-Wan/SmartFaceTarget/releases/download/latest/latest.zip",
+    "DownloadLinkTesting": "https://github.com/Neo-The-Wan/SmartFaceTarget/releases/download/latest/latest.zip",
+    "RepoUrl": "https://github.com/Neo-The-Wan/SmartFaceTarget"
+  }
+]
