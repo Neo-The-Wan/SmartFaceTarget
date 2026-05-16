@@ -23,13 +23,13 @@ public class PluginConfigUi(PluginConfig pluginConfig)
     try
     {
       ImGui.SetNextWindowPos(ImGui.GetMainViewport().GetCenter(), ImGuiCond.FirstUseEver, new Vector2(0.5f, 0.5f));
-      ImGui.SetNextWindowSize(new Vector2(575, 400), ImGuiCond.Always);
-
+      ImGui.SetNextWindowSize(new Vector2(575, 415), ImGuiCond.Always);
       if (!ImGui.Begin("SmartFaceTarget Settings", ref _visible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)) return;
 
       ImGui.Spacing();
 
       DrawCheckbox("Active", pluginConfig.Active, value => pluginConfig.Active = value);
+      DrawCheckbox("Camera Sync", pluginConfig.CameraSync, value => pluginConfig.CameraSync = value);
       DrawCheckbox("Combat Only", pluginConfig.CombatOnly, value => pluginConfig.CombatOnly = value);
 
       ImGui.Spacing();

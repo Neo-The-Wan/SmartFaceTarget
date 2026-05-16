@@ -7,6 +7,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud_ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using JetBrains.Annotations;
 
@@ -90,7 +91,6 @@ public sealed class Plugin : IDalamudPlugin
   public Plugin(IDalamudPluginInterface pluginInterface)
   {
     pluginInterface.Create<Service>();
-
     PluginConfig = Service.PluginInterface.GetPluginConfig() as PluginConfig ?? new PluginConfig();
     PluginConfig.Initialize(Service.PluginInterface);
     PluginConfigUi = new PluginConfigUi(PluginConfig);
@@ -210,11 +210,31 @@ public sealed class Plugin : IDalamudPlugin
     ((GameObject*)playerAddress)->SetRotation(playerRotation);
 
     _lastPlayerRotation = playerRotation;
+
+    if (!PluginConfig.CameraSync) return;
+
+    var cameraManager = CameraManager.Instance();
+    if (cameraManager == null) return;
+    var activeCamera = cameraManager->GetActiveCamera();
+    if (activeCamera == null) return;
+
+    var cameraRotation = NormalizeAngle(playerRotation + Deg180);
+    activeCamera->DirH = cameraRotation;
   }
 
   private unsafe void UpdateGameConfig(IntPtr playerAddress)
   {
     if ((_lastTickCount - _lastConfigCheck) < ConfigCheckDelay) return;
+
+    if (PluginConfig is { Active: true, CameraSync: true })
+    {
+      const uint autoFaceTargetOnAction = 0u; // OFF
+      if (Service.GameConfig.UiControl.GetUInt("AutoFaceTargetOnAction") != autoFaceTargetOnAction) Service.GameConfig.UiControl.Set("AutoFaceTargetOnAction", autoFaceTargetOnAction);
+      const uint keyboardCameraInterpolationType = 2u; // OFF
+      if (Service.GameConfig.UiControl.GetUInt("KeyboardCameraInterpolationType") != keyboardCameraInterpolationType) Service.GameConfig.UiControl.Set("KeyboardCameraInterpolationType", keyboardCameraInterpolationType);
+      const uint legacyCameraCorrectionFix = 1u; // ON
+      if (Service.GameConfig.UiConfig.GetUInt("LegacyCameraCorrectionFix") != legacyCameraCorrectionFix) Service.GameConfig.UiConfig.Set("LegacyCameraCorrectionFix", legacyCameraCorrectionFix);
+    }
 
     var moveMode = Service.Condition[ConditionFlag.InCombat] ? PluginConfig.MoveModeInCombat : PluginConfig.MoveModeOutCombat;
     if (moveMode == MoveMode.Default) moveMode = ((Character*)playerAddress)->IsWeaponDrawn ? PluginConfig.MoveModeWithWeapon : PluginConfig.MoveModeWithoutWeapon;

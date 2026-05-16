@@ -18,6 +18,7 @@ public class PluginConfig : IPluginConfiguration
   public int Version { get; set; } = 1;
 
   public bool Active { get; set; } = true;
+  public bool CameraSync { get; set; } = true;
   public bool CombatOnly { get; set; } = true;
   public int RotationAngle { get; set; } = 180;
   public int RotationSpeed { get; set; } = 250;
@@ -25,7 +26,6 @@ public class PluginConfig : IPluginConfiguration
   public int StickyDistance { get; set; } = 100;
   public int TargetingAngle { get; set; } = 90;
   public int TargetingDelay { get; set; } = 250;
-
   public MoveMode MoveModeInCombat { get; set; } = MoveMode.Default;
   public MoveMode MoveModeOutCombat { get; set; } = MoveMode.Default;
   public MoveMode MoveModeWithWeapon { get; set; } = MoveMode.Default;

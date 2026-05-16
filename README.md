@@ -6,6 +6,7 @@ This is a [Dalamud](https://github.com/goatcorp/Dalamud) plugin for Final Fantas
 
 - **Automatic Target Acquisition**: Automatically targets the closest attackable enemy in front of you within a specified cone angle, primarily useful in combat.
 - **Smart Facing**: Automatically rotates your character to face your current target after you remain stationary for a brief period.
+- **Camera Synchronization**: Optionally synchronizes your camera's direction with your character's automatic rotation.
 - **Dynamic Movement Mode**: Automatically switches between Standard and Legacy movement modes based on combat state or whether your weapon is drawn.
 - **Highly Configurable**: Control rotation speeds, targeting angles, delays, and context-specific rules.
 
@@ -17,6 +18,7 @@ This is a [Dalamud](https://github.com/goatcorp/Dalamud) plugin for Final Fantas
 
 - **Active**: Toggles the plugin functionality on or off.
 - **Combat Only**: Limits the plugin's functionality so it only activates when your character is in combat.
+- **Camera Sync**: Synchronizes the camera to face the same direction as the character when auto-rotation occurs.
 - **Rotation Angle**: The maximum angle to the target within which automatic facing will trigger.
 - **Rotation Speed**: Controls how smoothly and fast the character rotates to face the target.
 - **Stationary Time**: The delay (in milliseconds) the character must be stationary before automatic rotation kicks in.
