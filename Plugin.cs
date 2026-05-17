@@ -43,6 +43,11 @@ public sealed class Plugin : IDalamudPlugin
   private PluginConfig PluginConfig { get; init; }
   private PluginConfigUi PluginConfigUi { get; init; }
 
+  private uint _cfgOptAutoFaceTargetOnAction = 0u;
+  private uint _cfgOptKeyboardCameraInterpolationType = 0u;
+  private uint _cfgOptLegacyCameraCorrectionFix = 0u;
+  private uint _cfgOptMoveMode = 0u;
+
   private long _lastConfigCheck = 0;
   private long _lastPlayerMove = 0;
   private Vector3 _lastPlayerPosition = Vector3.Zero;
@@ -66,32 +71,40 @@ public sealed class Plugin : IDalamudPlugin
     Service.Condition[ConditionFlag.ExecutingGatheringAction] ||
     Service.Condition[ConditionFlag.Fishing] ||
     Service.Condition[ConditionFlag.Gathering] ||
-    Service.Condition[ConditionFlag.InFlight] ||
     Service.Condition[ConditionFlag.LoggingOut] ||
-    Service.Condition[ConditionFlag.Mounted] ||
+    Service.Condition[ConditionFlag.MeldingMateria] ||
+    Service.Condition[ConditionFlag.MountImmobile] ||
     Service.Condition[ConditionFlag.Mounting71] ||
     Service.Condition[ConditionFlag.Mounting] ||
+    Service.Condition[ConditionFlag.Occupied30] ||
+    Service.Condition[ConditionFlag.Occupied33] ||
+    Service.Condition[ConditionFlag.Occupied38] ||
+    Service.Condition[ConditionFlag.Occupied39] ||
     Service.Condition[ConditionFlag.OccupiedInCutSceneEvent] ||
     Service.Condition[ConditionFlag.OccupiedInEvent] ||
     Service.Condition[ConditionFlag.OccupiedInQuestEvent] ||
     Service.Condition[ConditionFlag.OccupiedSummoningBell] ||
     Service.Condition[ConditionFlag.Occupied] ||
+    Service.Condition[ConditionFlag.OperatingSiegeMachine] ||
     Service.Condition[ConditionFlag.Performing] ||
     Service.Condition[ConditionFlag.PilotingMech] ||
     Service.Condition[ConditionFlag.PlayingMiniGame] ||
     Service.Condition[ConditionFlag.PreparingToCraft] ||
+    Service.Condition[ConditionFlag.ReadyingVisitOtherWorld] ||
     Service.Condition[ConditionFlag.RidingPillion] ||
     Service.Condition[ConditionFlag.RolePlaying] ||
     Service.Condition[ConditionFlag.TradeOpen] ||
     Service.Condition[ConditionFlag.Transformed] ||
+    Service.Condition[ConditionFlag.Unconscious] ||
+    Service.Condition[ConditionFlag.UsingChocoboTaxi] ||
     Service.Condition[ConditionFlag.UsingFashionAccessory] ||
+    Service.Condition[ConditionFlag.WaitingToVisitOtherWorld] ||
     Service.Condition[ConditionFlag.WatchingCutscene78] ||
     Service.Condition[ConditionFlag.WatchingCutscene];
 
   public Plugin(IDalamudPluginInterface pluginInterface)
   {
     pluginInterface.Create<Service>();
-
     PluginConfig = Service.PluginInterface.GetPluginConfig() as PluginConfig ?? new PluginConfig();
     PluginConfig.Initialize(Service.PluginInterface);
     PluginConfigUi = new PluginConfigUi(PluginConfig);
@@ -103,14 +116,36 @@ public sealed class Plugin : IDalamudPlugin
     {
       HelpMessage = "Opens the SmartFaceTarget settings window."
     });
+
+    SaveConfigOptions();
   }
 
   public void Dispose()
   {
+    RestoreConfigOptions();
+
     Service.CommandManager.RemoveHandler(PluginCommand);
     Service.Framework.Update -= OnUpdate;
     Service.PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
     Service.PluginInterface.UiBuilder.Draw -= OnDraw;
+  }
+
+  private void SaveConfigOptions()
+  {
+    _cfgOptAutoFaceTargetOnAction = Service.GameConfig.UiControl.GetUInt("AutoFaceTargetOnAction");
+    _cfgOptKeyboardCameraInterpolationType = Service.GameConfig.UiControl.GetUInt("KeyboardCameraInterpolationType");
+    _cfgOptLegacyCameraCorrectionFix = Service.GameConfig.UiConfig.GetUInt("LegacyCameraCorrectionFix");
+    _cfgOptMoveMode = Service.GameConfig.UiControl.GetUInt("MoveMode");
+  }
+
+  private void RestoreConfigOptions()
+  {
+    if (!PluginConfig.Active) return;
+
+    Service.GameConfig.UiControl.Set("AutoFaceTargetOnAction", _cfgOptAutoFaceTargetOnAction);
+    Service.GameConfig.UiControl.Set("KeyboardCameraInterpolationType", _cfgOptKeyboardCameraInterpolationType);
+    Service.GameConfig.UiConfig.Set("LegacyCameraCorrectionFix", _cfgOptLegacyCameraCorrectionFix);
+    Service.GameConfig.UiControl.Set("MoveMode", _cfgOptMoveMode);
   }
 
   private void OnCommand(string command, string args)
