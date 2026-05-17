@@ -201,14 +201,14 @@ public sealed class Plugin : IDalamudPlugin
     var targetRotation = GetObjectRotation(target.Position, playerPosition, playerRotation);
     if ((MathF.Abs(targetRotation) > halfAngle) || (MathF.Abs(targetRotation) <= Dev1Mm)) return;
 
-    var playerDestination = playerRotation + targetRotation;
+    var playerDestination = NormalizeAngle(playerRotation + targetRotation);
     var rotationSpeed = PluginConfig.RotationSpeed / 1000.0f;
     var onUpdateDelta = (float)Service.Framework.UpdateDelta.TotalSeconds;
     var rotationFactor = 1.0f - MathF.Exp(-rotationSpeed * onUpdateDelta * 60.0f);
     var rotationStep = targetRotation * rotationFactor;
-    targetRotation = MathF.Abs(targetRotation - rotationStep) <= Dev1Mm ? targetRotation : rotationStep;
+    var smoothTargetRotation = MathF.Abs(targetRotation - rotationStep) <= Dev1Mm ? targetRotation : rotationStep;
 
-    playerRotation = NormalizeAngle(playerRotation + targetRotation);
+    playerRotation = NormalizeAngle(playerRotation + smoothTargetRotation);
     ((GameObject*)playerAddress)->SetRotation(playerRotation);
 
     _lastPlayerRotation = playerRotation;
@@ -226,10 +226,10 @@ public sealed class Plugin : IDalamudPlugin
     if (MathF.Abs(cameraRotation) <= Dev1Mm) return;
 
     var cameraStep = cameraRotation * rotationFactor;
-    cameraRotation = MathF.Abs(cameraRotation - cameraStep) <= Dev1Mm ? cameraRotation : cameraStep;
+    var smoothCameraRotation = MathF.Abs(cameraRotation - cameraStep) <= Dev1Mm ? cameraRotation : cameraStep;
 
-    cameraRotation = NormalizeAngle(cameraDirection + cameraRotation);
-    activeCamera->DirH = cameraRotation;
+    cameraDirection = NormalizeAngle(cameraDirection + smoothCameraRotation);
+    activeCamera->DirH = cameraDirection;
   }
 
   private unsafe void UpdateGameConfig(IntPtr playerAddress)
