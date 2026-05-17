@@ -13,7 +13,7 @@ using JetBrains.Annotations;
 
 namespace SmartFaceTarget;
 
-// ReSharper disable ArrangeObjectCreationWhenTypeEvident AutoPropertyCanBeMadeGetOnly.Local ConvertIfStatementToSwitchStatement ForCanBeConvertedToForeach InvertIf RedundantDefaultMemberInitializer
+// ReSharper disable ArrangeObjectCreationWhenTypeEvident AutoPropertyCanBeMadeGetOnly.Local ConvertIfStatementToSwitchStatement ForCanBeConvertedToForeach InvertIf LoopCanBeConvertedToQuery RedundantDefaultMemberInitializer
 public class Service
 {
   [PluginService] public static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
@@ -29,6 +29,47 @@ public class Service
 [UsedImplicitly]
 public sealed class Plugin : IDalamudPlugin
 {
+  private static readonly ConditionFlag[] PlayerBusyConditions =
+  [
+    ConditionFlag.BeingMoved,
+    ConditionFlag.BetweenAreas, ConditionFlag.BetweenAreas51,
+    ConditionFlag.ChocoboRacing,
+    ConditionFlag.Crafting,
+    ConditionFlag.CreatingCharacter,
+    ConditionFlag.DutyRecorderPlayback,
+    ConditionFlag.EditingPortrait,
+    ConditionFlag.EditingStrategyBoard,
+    ConditionFlag.Emoting,
+    ConditionFlag.ExecutingCraftingAction,
+    ConditionFlag.ExecutingGatheringAction,
+    ConditionFlag.Fishing,
+    ConditionFlag.Gathering,
+    ConditionFlag.LoggingOut,
+    ConditionFlag.MeldingMateria,
+    ConditionFlag.MountImmobile,
+    ConditionFlag.Mounting, ConditionFlag.Mounting71,
+    ConditionFlag.Occupied, ConditionFlag.Occupied30, ConditionFlag.Occupied33, ConditionFlag.Occupied38, ConditionFlag.Occupied39,
+    ConditionFlag.OccupiedInCutSceneEvent,
+    ConditionFlag.OccupiedInEvent,
+    ConditionFlag.OccupiedInQuestEvent,
+    ConditionFlag.OccupiedSummoningBell,
+    ConditionFlag.OperatingSiegeMachine,
+    ConditionFlag.Performing,
+    ConditionFlag.PilotingMech,
+    ConditionFlag.PlayingMiniGame,
+    ConditionFlag.PreparingToCraft,
+    ConditionFlag.ReadyingVisitOtherWorld,
+    ConditionFlag.RidingPillion,
+    ConditionFlag.RolePlaying,
+    ConditionFlag.TradeOpen,
+    ConditionFlag.Transformed,
+    ConditionFlag.Unconscious,
+    ConditionFlag.UsingChocoboTaxi,
+    ConditionFlag.UsingFashionAccessory,
+    ConditionFlag.WaitingToVisitOtherWorld,
+    ConditionFlag.WatchingCutscene, ConditionFlag.WatchingCutscene78
+  ];
+
   private const string PluginCommand = "/sft";
 
   private const Dalamud_ObjectKind BattleNpc = Dalamud_ObjectKind.BattleNpc;
@@ -54,53 +95,6 @@ public sealed class Plugin : IDalamudPlugin
   private float _lastPlayerRotation = 0.0f;
   private long _lastTargetCheck = 0;
   private long _lastTickCount = 0;
-
-  private static bool IsPlayerBusy =>
-    Service.ClientState.IsGPosing ||
-    Service.Condition[ConditionFlag.BeingMoved] ||
-    Service.Condition[ConditionFlag.BetweenAreas51] ||
-    Service.Condition[ConditionFlag.BetweenAreas] ||
-    Service.Condition[ConditionFlag.ChocoboRacing] ||
-    Service.Condition[ConditionFlag.Crafting] ||
-    Service.Condition[ConditionFlag.CreatingCharacter] ||
-    Service.Condition[ConditionFlag.DutyRecorderPlayback] ||
-    Service.Condition[ConditionFlag.EditingPortrait] ||
-    Service.Condition[ConditionFlag.EditingStrategyBoard] ||
-    Service.Condition[ConditionFlag.Emoting] ||
-    Service.Condition[ConditionFlag.ExecutingCraftingAction] ||
-    Service.Condition[ConditionFlag.ExecutingGatheringAction] ||
-    Service.Condition[ConditionFlag.Fishing] ||
-    Service.Condition[ConditionFlag.Gathering] ||
-    Service.Condition[ConditionFlag.LoggingOut] ||
-    Service.Condition[ConditionFlag.MeldingMateria] ||
-    Service.Condition[ConditionFlag.MountImmobile] ||
-    Service.Condition[ConditionFlag.Mounting71] ||
-    Service.Condition[ConditionFlag.Mounting] ||
-    Service.Condition[ConditionFlag.Occupied30] ||
-    Service.Condition[ConditionFlag.Occupied33] ||
-    Service.Condition[ConditionFlag.Occupied38] ||
-    Service.Condition[ConditionFlag.Occupied39] ||
-    Service.Condition[ConditionFlag.OccupiedInCutSceneEvent] ||
-    Service.Condition[ConditionFlag.OccupiedInEvent] ||
-    Service.Condition[ConditionFlag.OccupiedInQuestEvent] ||
-    Service.Condition[ConditionFlag.OccupiedSummoningBell] ||
-    Service.Condition[ConditionFlag.Occupied] ||
-    Service.Condition[ConditionFlag.OperatingSiegeMachine] ||
-    Service.Condition[ConditionFlag.Performing] ||
-    Service.Condition[ConditionFlag.PilotingMech] ||
-    Service.Condition[ConditionFlag.PlayingMiniGame] ||
-    Service.Condition[ConditionFlag.PreparingToCraft] ||
-    Service.Condition[ConditionFlag.ReadyingVisitOtherWorld] ||
-    Service.Condition[ConditionFlag.RidingPillion] ||
-    Service.Condition[ConditionFlag.RolePlaying] ||
-    Service.Condition[ConditionFlag.TradeOpen] ||
-    Service.Condition[ConditionFlag.Transformed] ||
-    Service.Condition[ConditionFlag.Unconscious] ||
-    Service.Condition[ConditionFlag.UsingChocoboTaxi] ||
-    Service.Condition[ConditionFlag.UsingFashionAccessory] ||
-    Service.Condition[ConditionFlag.WaitingToVisitOtherWorld] ||
-    Service.Condition[ConditionFlag.WatchingCutscene78] ||
-    Service.Condition[ConditionFlag.WatchingCutscene];
 
   public Plugin(IDalamudPluginInterface pluginInterface)
   {
@@ -174,7 +168,7 @@ public sealed class Plugin : IDalamudPlugin
 
     UpdateGameConfig(playerAddress);
 
-    if (!PluginConfig.Active || (PluginConfig.CombatOnly && !Service.Condition[ConditionFlag.InCombat]) || IsPlayerBusy) return;
+    if (!PluginConfig.Active || (PluginConfig.CombatOnly && !Service.Condition[ConditionFlag.InCombat]) || IsPlayerBusy()) return;
 
     var target = Service.TargetManager.Target;
     var playerPosition = player.Position;
@@ -301,6 +295,17 @@ public sealed class Plugin : IDalamudPlugin
     if (characterAddress == IntPtr.Zero) return false;
 
     return ((Character*)characterAddress)->GetTargetType() == TargetType.Enemy;
+  }
+
+  private static bool IsPlayerBusy()
+  {
+    for (var idx = 0; idx < PlayerBusyConditions.Length; idx++)
+    {
+      var playerBusyCondition = PlayerBusyConditions[idx];
+      if (Service.Condition[playerBusyCondition]) return true;
+    }
+
+    return Service.ClientState.IsGPosing;
   }
 
   private static float NormalizeAngle(float angle)
