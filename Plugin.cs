@@ -31,55 +31,61 @@ public sealed class Plugin : IDalamudPlugin
 {
   private static readonly ConditionFlag[] PlayerBusyConditions =
   [
-    ConditionFlag.BeingMoved,
-    ConditionFlag.BetweenAreas, ConditionFlag.BetweenAreas51,
-    ConditionFlag.ChocoboRacing,
-    ConditionFlag.Crafting,
-    ConditionFlag.CreatingCharacter,
-    ConditionFlag.DutyRecorderPlayback,
-    ConditionFlag.EditingPortrait,
-    ConditionFlag.EditingStrategyBoard,
-    ConditionFlag.Emoting,
-    ConditionFlag.ExecutingCraftingAction,
-    ConditionFlag.ExecutingGatheringAction,
-    ConditionFlag.Fishing,
-    ConditionFlag.Gathering,
-    ConditionFlag.LoggingOut,
-    ConditionFlag.MeldingMateria,
-    ConditionFlag.MountImmobile,
-    ConditionFlag.Mounting, ConditionFlag.Mounting71,
+    // Tier 1: Daily Gameplay & High-Frequency Cutscenes (Check First)
     ConditionFlag.Occupied, ConditionFlag.Occupied30, ConditionFlag.Occupied33, ConditionFlag.Occupied38, ConditionFlag.Occupied39,
-    ConditionFlag.OccupiedInCutSceneEvent,
+    ConditionFlag.WatchingCutscene, ConditionFlag.WatchingCutscene78,
     ConditionFlag.OccupiedInEvent,
     ConditionFlag.OccupiedInQuestEvent,
+    ConditionFlag.OccupiedInCutSceneEvent,
+    // Tier 2: Movement, Spatial Transitions & Combat Exceptions
+    ConditionFlag.BetweenAreas, ConditionFlag.BetweenAreas51,
+    ConditionFlag.BeingMoved, // Forced movement/knockbacks in combat
+    ConditionFlag.Mounting,
+    ConditionFlag.Mounting71,
+    ConditionFlag.MountImmobile,
+    ConditionFlag.Unconscious, // Caught by player.IsDead, but great fallback
+    // Tier 3: Routine Non-Combat Activities (Town & Life Skills)
     ConditionFlag.OccupiedSummoningBell,
-    ConditionFlag.OperatingSiegeMachine,
-    ConditionFlag.Performing,
-    ConditionFlag.PilotingMech,
-    ConditionFlag.PlayingMiniGame,
+    ConditionFlag.Crafting,
+    ConditionFlag.ExecutingCraftingAction,
     ConditionFlag.PreparingToCraft,
-    ConditionFlag.ReadyingVisitOtherWorld,
-    ConditionFlag.RidingPillion,
-    ConditionFlag.RolePlaying,
+    ConditionFlag.Gathering,
+    ConditionFlag.ExecutingGatheringAction,
+    ConditionFlag.Fishing,
     ConditionFlag.TradeOpen,
-    ConditionFlag.Transformed,
-    ConditionFlag.Unconscious,
+    ConditionFlag.MeldingMateria,
+    ConditionFlag.Emoting,
+    // Tier 4: Specific/Gimmick Content & Instanced Vehicles
+    ConditionFlag.Transformed, // Vehicle quests / specific raid mechanics
+    ConditionFlag.PilotingMech, // Rival Wings / Frontlines
+    ConditionFlag.OperatingSiegeMachine,
     ConditionFlag.UsingChocoboTaxi,
+    ConditionFlag.RidingPillion,
     ConditionFlag.UsingFashionAccessory,
+    ConditionFlag.PlayingMiniGame,
+    ConditionFlag.ChocoboRacing,
+    ConditionFlag.Performing, // Bard performance mode
+    // Tier 5: Menu/Meta States & Out-of-World Travel (Check Last)
+    ConditionFlag.EditingPortrait,
+    ConditionFlag.EditingStrategyBoard,
+    ConditionFlag.RolePlaying,
     ConditionFlag.WaitingToVisitOtherWorld,
-    ConditionFlag.WatchingCutscene, ConditionFlag.WatchingCutscene78
+    ConditionFlag.ReadyingVisitOtherWorld,
+    ConditionFlag.LoggingOut,
+    ConditionFlag.DutyRecorderPlayback,
+    ConditionFlag.CreatingCharacter // Virtually impossible on a live player tick
   ];
-
-  private const string PluginCommand = "/sft";
 
   private const Dalamud_ObjectKind BattleNpc = Dalamud_ObjectKind.BattleNpc;
   private const byte BattleNpcCombatant = (byte)BattleNpcSubKind.Combatant;
   private const long ConfigCheckDelay = 500;
-  private const float Deg001 = MathF.PI / 180.0f; // 1 deg (radian)
-  private const float Deg180 = MathF.PI; // 180 deg (radian)
-  private const float Deg360 = MathF.PI * 2.0f; // 360 deg (radian)
-  private const float Dev1Mm = 0.001f; // ~ 1 mm dev by meter (radian)
-  private const float Dis1Cm = 0.010936f; // ~ 1 cm (yard)
+  private const float Deg001 = MathF.Tau / 360.0f; // 1 deg (radian)
+  private const float Deg180 = MathF.Tau / 2.0f; // 180 deg (radian)
+  private const float Deg360 = MathF.Tau; // 360 deg (radian)
+  private const float Dev1Mm = 0.001f; // 1 mm dev by meter (radian)
+  private const float Dis1Cm = 0.01f; // 1 cm (meter)
+  private const float Dis1CmSq = Dis1Cm * Dis1Cm;
+  private const string PluginCommand = "/sft";
 
   private PluginConfig PluginConfig { get; init; }
   private PluginConfigUi PluginConfigUi { get; init; }
@@ -88,7 +94,6 @@ public sealed class Plugin : IDalamudPlugin
   private uint _cfgOptKeyboardCameraInterpolationType = 0u;
   private uint _cfgOptLegacyCameraCorrectionFix = 0u;
   private uint _cfgOptMoveMode = 0u;
-
   private long _lastConfigCheck = 0;
   private long _lastPlayerMove = 0;
   private Vector3 _lastPlayerPosition = Vector3.Zero;
@@ -99,6 +104,7 @@ public sealed class Plugin : IDalamudPlugin
   public Plugin(IDalamudPluginInterface pluginInterface)
   {
     pluginInterface.Create<Service>();
+
     PluginConfig = Service.PluginInterface.GetPluginConfig() as PluginConfig ?? new PluginConfig();
     PluginConfig.Initialize(Service.PluginInterface);
     PluginConfigUi = new PluginConfigUi(PluginConfig);
@@ -134,8 +140,6 @@ public sealed class Plugin : IDalamudPlugin
 
   private void RestoreConfigOptions()
   {
-    if (!PluginConfig.Active) return;
-
     Service.GameConfig.UiControl.Set("AutoFaceTargetOnAction", _cfgOptAutoFaceTargetOnAction);
     Service.GameConfig.UiControl.Set("KeyboardCameraInterpolationType", _cfgOptKeyboardCameraInterpolationType);
     Service.GameConfig.UiConfig.Set("LegacyCameraCorrectionFix", _cfgOptLegacyCameraCorrectionFix);
@@ -175,13 +179,13 @@ public sealed class Plugin : IDalamudPlugin
     var playerRotation = player.Rotation;
 
     HandleMovement(playerPosition, playerRotation);
-    if (PluginConfig.TargetingAngle > 0) HandleTargeting(ref target, playerPosition, playerRotation);
-    if (PluginConfig is { RotationAngle: > 0, RotationSpeed: > 0 }) HandleRotation(target, playerAddress, playerPosition, playerRotation);
+    HandleTargeting(ref target, playerPosition, playerRotation);
+    HandleRotation(target, playerAddress, playerPosition, playerRotation);
   }
 
   private void HandleMovement(Vector3 playerPosition, float playerRotation)
   {
-    if ((Vector3.Distance(playerPosition, _lastPlayerPosition) <= Dis1Cm) && (MathF.Abs(playerRotation - _lastPlayerRotation) <= Dev1Mm)) return;
+    if ((Vector3.DistanceSquared(playerPosition, _lastPlayerPosition) <= Dis1CmSq) && (MathF.Abs(playerRotation - _lastPlayerRotation) <= Dev1Mm)) return;
 
     _lastPlayerPosition = playerPosition;
     _lastPlayerRotation = playerRotation;
@@ -191,7 +195,7 @@ public sealed class Plugin : IDalamudPlugin
 
   private void HandleTargeting(ref IGameObject? target, Vector3 playerPosition, float playerRotation)
   {
-    if (((_lastTickCount - _lastTargetCheck) < PluginConfig.TargetingDelay) || ((target == null) && !Service.Condition[ConditionFlag.InCombat]) || ((target != null) && !IsAttackableEnemy(target))) return;
+    if (((_lastTickCount - _lastTargetCheck) < PluginConfig.TargetingDelay) || (PluginConfig.TargetingAngle == 0) || ((target == null) && !Service.Condition[ConditionFlag.InCombat]) || ((target != null) && !IsAttackableEnemy(target))) return;
 
     var halfAngle = (PluginConfig.TargetingAngle / 2.0f) * Deg001;
     var closestEnemy = target;
@@ -224,7 +228,7 @@ public sealed class Plugin : IDalamudPlugin
 
   private unsafe void HandleRotation(IGameObject? target, IntPtr playerAddress, Vector3 playerPosition, float playerRotation)
   {
-    if (((_lastTickCount - _lastPlayerMove) < PluginConfig.StationaryTime) || (target == null)) return;
+    if (((_lastTickCount - _lastPlayerMove) < PluginConfig.StationaryTime) || (PluginConfig.RotationAngle == 0) || (PluginConfig.RotationSpeed == 0) || (target == null)) return;
 
     var halfAngle = (PluginConfig.RotationAngle / 2.0f) * Deg001;
     var targetRotation = GetObjectRotation(target.Position, playerPosition, playerRotation);
@@ -302,6 +306,7 @@ public sealed class Plugin : IDalamudPlugin
     for (var idx = 0; idx < PlayerBusyConditions.Length; idx++)
     {
       var playerBusyCondition = PlayerBusyConditions[idx];
+
       if (Service.Condition[playerBusyCondition]) return true;
     }
 
